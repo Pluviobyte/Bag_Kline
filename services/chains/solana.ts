@@ -105,9 +105,9 @@ export async function getSolanaTransactions(address: string): Promise<HeliusTran
 /**
  * Get the first transaction date for a Solana wallet
  * @param address - Solana wallet address
- * @returns Date of first transaction
+ * @returns Date of first transaction, or null if no transactions
  */
-export async function getSolanaFirstTransactionDate(address: string): Promise<Date> {
+export async function getSolanaFirstTransactionDate(address: string): Promise<Date | null> {
   if (!HELIUS_API_KEY) {
     throw new Error('HELIUS_API_KEY is not configured');
   }
@@ -138,11 +138,12 @@ export async function getSolanaFirstTransactionDate(address: string): Promise<Da
       }
     }
 
-    // If no transactions found, return current date
-    return new Date();
+    // No transactions found
+    console.log('No transactions found for Solana address:', address);
+    return null;
   } catch (error) {
     console.error('Error getting first transaction date:', error);
-    return new Date();
+    return null;
   }
 }
 

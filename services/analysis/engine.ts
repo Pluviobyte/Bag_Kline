@@ -52,6 +52,15 @@ export async function analyzeWallet(address: string): Promise<AnalysisResult> {
     totalValueUsd = holdings.reduce((sum, h) => sum + h.valueUsd, 0);
   }
 
+  // Check if wallet has any activity
+  const hasHoldings = holdings.length > 0 && totalValueUsd > 0;
+  const hasTransactions = chainData.transactions.length > 0;
+  const hasFirstTx = chainData.firstTxDate !== null;
+
+  if (!hasHoldings && !hasTransactions && !hasFirstTx) {
+    throw new Error('该钱包暂无链上活动记录，无法进行分析。请确认地址正确，或资产是否在其他链/交易所内。');
+  }
+
   // Calculate holding percentages
   holdings.forEach(h => {
     h.percentOfPortfolio = totalValueUsd > 0 ? (h.valueUsd / totalValueUsd) * 100 : 0;
@@ -65,13 +74,16 @@ export async function analyzeWallet(address: string): Promise<AnalysisResult> {
   const pnlPercent = 0;
   const pnlUsd = 0;
 
+  // Use actual firstTxDate or default to 6 months ago for display purposes
+  const effectiveFirstTxDate = chainData.firstTxDate || new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000);
+
   // Generate personality tags
   const personality = generatePersonality({
     txCount30d: chainData.transactions.length,
     holdings,
     totalValueUsd,
     pnlPercent,
-    firstTxDate: chainData.firstTxDate,
+    firstTxDate: effectiveFirstTxDate,
   });
 
   // Generate AI content
@@ -86,7 +98,7 @@ export async function analyzeWallet(address: string): Promise<AnalysisResult> {
   // Generate K-line data
   let klineData = generateKLineData({
     holdings,
-    firstTxDate: chainData.firstTxDate.toISOString(),
+    firstTxDate: effectiveFirstTxDate.toISOString(),
     totalValueUsd,
     currentPnlPercent: pnlPercent,
     txCount30d: chainData.transactions.length,
@@ -112,13 +124,17 @@ export async function analyzeWallet(address: string): Promise<AnalysisResult> {
     // Continue without predictions
   }
 
-  // Generate BaZi (八字) analysis
+  // Generate BaZi (八字) analysis - only if we have real first transaction date
   let baziResult;
-  try {
-    baziResult = generateBaZiAnalysis(chainData.firstTxDate, holdings);
-  } catch (error) {
-    console.error('Failed to generate BaZi analysis:', error);
-    // Continue without BaZi analysis
+  if (chainData.firstTxDate) {
+    try {
+      baziResult = generateBaZiAnalysis(chainData.firstTxDate, holdings);
+    } catch (error) {
+      console.error('Failed to generate BaZi analysis:', error);
+      // Continue without BaZi analysis
+    }
+  } else {
+    console.log('Skipping BaZi analysis: no real first transaction date');
   }
 
   // Build result
@@ -134,7 +150,7 @@ export async function analyzeWallet(address: string): Promise<AnalysisResult> {
     },
     trading: {
       txCount30d: chainData.transactions.length,
-      firstTxDate: chainData.firstTxDate.toISOString(),
+      firstTxDate: chainData.firstTxDate ? chainData.firstTxDate.toISOString() : null,
     },
     pnl: {
       totalPnlPercent: pnlPercent,
@@ -148,6 +164,7 @@ export async function analyzeWallet(address: string): Promise<AnalysisResult> {
       pnlStatus: personality.dimensions.pnlStatus.key as AnalysisResult['personality']['pnlStatus'],
       concentration: personality.dimensions.concentration.key as AnalysisResult['personality']['concentration'],
       walletAge: personality.dimensions.walletAge.key as AnalysisResult['personality']['walletAge'],
+      dimensions: personality.dimensions,  // 包含评分的完整维度数据
     },
     aiContent,
     klineData,
@@ -166,7 +183,7 @@ export async function analyzeWallet(address: string): Promise<AnalysisResult> {
 interface ChainData {
   rawHoldings: RawHolding[];
   transactions: unknown[];
-  firstTxDate: Date;
+  firstTxDate: Date | null;
   enrichedHoldings?: TokenHolding[]; // Pre-enriched holdings from DeBank
   totalValueUsd?: number;            // Pre-calculated total from DeBank
 }

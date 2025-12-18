@@ -220,7 +220,7 @@ export async function getEVMTransactions(address: string): Promise<AlchemyTransf
  * @param address - EVM wallet address (0x...)
  * @returns Date of first transaction
  */
-export async function getEVMFirstTransactionDate(address: string): Promise<Date> {
+export async function getEVMFirstTransactionDate(address: string): Promise<Date | null> {
   const apiKey = ALCHEMY_API_KEY || 'demo';
   const url = `https://eth-mainnet.g.alchemy.com/v2/${apiKey}`;
 
@@ -282,13 +282,10 @@ export async function getEVMFirstTransactionDate(address: string): Promise<Date>
     }
 
     console.log('No transactions found for address:', address);
-    return new Date();
+    return null;
   } catch (error) {
     console.error('Error getting first transaction date:', error);
-    // Return a date 6 months ago as default
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    return sixMonthsAgo;
+    return null;
   }
 }
 

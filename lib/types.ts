@@ -12,7 +12,7 @@ export interface AnalysisResult {
 
   trading: {
     txCount30d: number;
-    firstTxDate: string;
+    firstTxDate: string | null;
   };
 
   pnl: {
@@ -28,6 +28,7 @@ export interface AnalysisResult {
     pnlStatus: 'winner' | 'profit' | 'breakeven' | 'loss' | 'rekt';
     concentration: 'yolo' | 'heavy' | 'diversified';
     walletAge: 'og' | 'veteran' | 'newbie';
+    dimensions?: PersonalityResult['dimensions'];  // 包含评分的完整维度数据
   };
 
   aiContent: {
@@ -64,6 +65,7 @@ export interface PersonalityDimension {
   label: string;
   emoji: string;
   description: string;
+  score: number;  // 0-100 评分，用于雷达图
 }
 
 export interface PersonalityResult {
@@ -117,6 +119,7 @@ export interface KLinePoint {
   label?: string;         // "主升浪"、"低谷期"
   event?: string;         // "首次买入"、"BTC减半"
   pnlPercent?: number;    // 当时盈亏%
+  volume?: number;        // 交易量/活跃度
 }
 
 export interface KLineData {

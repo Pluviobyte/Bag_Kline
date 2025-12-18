@@ -159,6 +159,7 @@ function generateKLinePoints(monthlyData: MonthlyData[]): KLinePoint[] {
       label,
       event,
       pnlPercent: Math.round(data.pnlPercent * 10) / 10,
+      volume: data.txCount,
     });
 
     prevScore = score;

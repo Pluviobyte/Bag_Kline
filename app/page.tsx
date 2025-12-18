@@ -61,11 +61,16 @@ export default function Home() {
         {/* Logo and Title */}
         <div className="text-center">
           <h1 className="text-5xl font-extrabold text-gray-900 mb-2 tracking-tight">
-            我的袋子K线
+            袋子K线
           </h1>
-          <p className="text-xl text-gray-600 font-medium">
-            BagKline
+          <p className="text-lg text-gray-600 font-medium mb-4">
+            看看你的袋子有多绿
           </p>
+          <div className="text-sm text-gray-500 space-y-1">
+            <p>🎭 你是什么币圈物种？鲸鱼、海豚还是虾米？</p>
+            <p>📉 你的运势K线，下一个主升浪什么时候来？</p>
+            <p>🀄 链上八字命盘，2025流年运势抢先看</p>
+          </div>
         </div>
 
         {/* Main Card */}
@@ -144,9 +149,14 @@ export default function Home() {
         </div>
 
         {/* Disclaimer */}
-        <p className="text-gray-400 text-xs text-center">
-          仅供娱乐，不构成投资建议
-        </p>
+        <div className="text-center space-y-1">
+          <p className="text-gray-500 text-xs">
+            仅限链上钱包，CEX用户请先提到链上再来算命
+          </p>
+          <p className="text-gray-400 text-xs">
+            纯属娱乐，DYOR
+          </p>
+        </div>
       </div>
     </main>
   );

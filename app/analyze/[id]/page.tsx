@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AnalysisResult } from '@/lib/types';
 import { KLineChart } from '@/components/kline-chart';
 import { BaZiChart } from '@/components/bazi-chart';
+import { RadarChart } from '@/components/radar-chart';
 
 // Dimension label mapping
 const dimensionLabels: Record<string, Record<string, string>> = {
@@ -228,50 +229,20 @@ export default function AnalyzePage() {
           </Card>
         )}
 
-        {/* Six Dimensions */}
-        <Card className="bg-white border-gray-200 shadow-lg rounded-lg">
-          <CardHeader>
-            <CardTitle className="text-gray-900 text-xl font-bold">六维画像</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-            <div className="flex justify-between items-center text-base">
-              <span className="text-gray-500">交易风格</span>
-              <span className="font-semibold text-gray-800">
-                {getDimensionLabel('tradingStyle', result.personality.tradingStyle)}
-              </span>
-            </div>
-            <div className="flex justify-between items-center text-base">
-              <span className="text-gray-500">代币偏好</span>
-              <span className="font-semibold text-gray-800">
-                {getDimensionLabel('tokenPreference', result.personality.tokenPreference)}
-              </span>
-            </div>
-            <div className="flex justify-between items-center text-base">
-              <span className="text-gray-500">资金规模</span>
-              <span className="font-semibold text-gray-800">
-                {getDimensionLabel('portfolioSize', result.personality.portfolioSize)}
-              </span>
-            </div>
-            <div className="flex justify-between items-center text-base">
-              <span className="text-gray-500">盈亏状态</span>
-              <span className="font-semibold text-gray-800">
-                {getDimensionLabel('pnlStatus', result.personality.pnlStatus)}
-              </span>
-            </div>
-            <div className="flex justify-between items-center text-base">
-              <span className="text-gray-500">持仓集中度</span>
-              <span className="font-semibold text-gray-800">
-                {getDimensionLabel('concentration', result.personality.concentration)}
-              </span>
-            </div>
-            <div className="flex justify-between items-center text-base">
-              <span className="text-gray-500">钱包年龄</span>
-              <span className="font-semibold text-gray-800">
-                {getDimensionLabel('walletAge', result.personality.walletAge)}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Six Dimensions Radar Chart */}
+        {result.personality.dimensions && (
+          <Card className="bg-white border-gray-200 shadow-lg rounded-lg">
+            <CardHeader>
+              <CardTitle className="text-gray-900 text-xl font-bold flex items-center gap-2">
+                <span>六维画像</span>
+                <span className="text-sm font-normal text-gray-500">综合评分 · 雷达图</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              <RadarChart dimensions={result.personality.dimensions} height={320} />
+            </CardContent>
+          </Card>
+        )}
 
         {/* Top Holdings */}
         {result.portfolio.holdings.length > 0 && (
