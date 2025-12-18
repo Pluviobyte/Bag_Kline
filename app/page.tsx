@@ -56,7 +56,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 flex items-center justify-center p-4">
+    <main className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
         {/* Logo and Title */}
         <div className="text-center">
@@ -69,7 +69,7 @@ export default function Home() {
         </div>
 
         {/* Main Card */}
-        <Card className="bg-white/70 border-gray-200 shadow-xl rounded-lg backdrop-blur-md">
+        <Card className="bg-white border-gray-200 shadow-xl rounded-lg backdrop-blur-md">
           <CardHeader className="text-center">
             <CardTitle className="text-gray-900 text-2xl font-bold">
               输入钱包地址

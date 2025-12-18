@@ -2,6 +2,8 @@ import { nanoid } from 'nanoid';
 import { detectChainType } from '../chains/detector';
 import { getSolanaHoldings, getSolanaTransactions, getSolanaFirstTransactionDate } from '../chains/solana';
 import { getEVMHoldings, getEVMTransactions, getEVMFirstTransactionDate } from '../chains/evm';
+import { isDeBankConfigured, getWalletData as getDeBankWalletData } from '../chains/debank';
+import { isMoralisConfigured, getWalletData as getMoralisWalletData } from '../chains/moralis';
 import { getTokenInfo, isMainstreamToken } from '../price/coingecko';
 import { generatePersonality } from './tags';
 import { generateAIContent, generateKLinePrediction } from '../ai/gemini';
@@ -35,11 +37,20 @@ export async function analyzeWallet(address: string): Promise<AnalysisResult> {
   // Fetch chain data based on type
   const chainData = await fetchChainData(address, chain);
 
-  // Enrich holdings with price and category data
-  const holdings = await enrichHoldings(chainData.rawHoldings, chain);
+  // Use enriched holdings from DeBank if available, otherwise enrich manually
+  let holdings: TokenHolding[];
+  let totalValueUsd: number;
 
-  // Calculate totals
-  const totalValueUsd = holdings.reduce((sum, h) => sum + h.valueUsd, 0);
+  if (chainData.enrichedHoldings && chainData.enrichedHoldings.length > 0) {
+    // DeBank provided pre-enriched holdings
+    holdings = chainData.enrichedHoldings;
+    totalValueUsd = chainData.totalValueUsd || holdings.reduce((sum, h) => sum + h.valueUsd, 0);
+    console.log(`Using DeBank data: ${holdings.length} holdings, total $${totalValueUsd.toFixed(2)}`);
+  } else {
+    // Enrich holdings with price and category data from CoinGecko
+    holdings = await enrichHoldings(chainData.rawHoldings, chain);
+    totalValueUsd = holdings.reduce((sum, h) => sum + h.valueUsd, 0);
+  }
 
   // Calculate holding percentages
   holdings.forEach(h => {
@@ -156,6 +167,8 @@ interface ChainData {
   rawHoldings: RawHolding[];
   transactions: unknown[];
   firstTxDate: Date;
+  enrichedHoldings?: TokenHolding[]; // Pre-enriched holdings from DeBank
+  totalValueUsd?: number;            // Pre-calculated total from DeBank
 }
 
 interface RawHolding {
@@ -188,7 +201,84 @@ async function fetchChainData(address: string, chain: ChainType): Promise<ChainD
     };
   }
 
-  // EVM
+  // EVM - Try Moralis first (free), then DeBank, then Alchemy
+  if (isMoralisConfigured()) {
+    console.log('Using Moralis API for EVM holdings (free tier)...');
+    try {
+      const [moralisData, transactions, firstTxDate] = await Promise.all([
+        getMoralisWalletData(address),
+        getEVMTransactions(address),
+        getEVMFirstTransactionDate(address),
+      ]);
+
+      // Convert Moralis holdings to TokenHolding format
+      const enrichedHoldings: TokenHolding[] = moralisData.holdings.map(h => ({
+        symbol: h.symbol,
+        name: h.name,
+        amount: h.amount,
+        valueUsd: h.valueUsd,
+        percentOfPortfolio: 0, // Will be calculated later
+        isMeme: isMemeToken(h.symbol),
+        contractAddress: h.contractAddress,
+        isProtocolToken: h.isProtocolToken,
+        protocolName: h.protocolName,
+      }));
+
+      console.log(`Moralis: Found ${enrichedHoldings.length} holdings, total $${moralisData.totalValueUsd.toFixed(2)}`);
+      if (moralisData.defiSummary) {
+        console.log(`DeFi: ${moralisData.defiSummary.activeProtocols} protocols, $${moralisData.defiSummary.totalDefiValue.toFixed(2)}`);
+      }
+
+      return {
+        rawHoldings: [],
+        transactions,
+        firstTxDate,
+        enrichedHoldings,
+        totalValueUsd: moralisData.totalValueUsd,
+      };
+    } catch (error) {
+      console.error('Moralis API failed:', error);
+      // Fall through to DeBank or Alchemy
+    }
+  }
+
+  // Try DeBank if configured
+  if (isDeBankConfigured()) {
+    console.log('Using DeBank API for EVM holdings...');
+    try {
+      const [deBankData, transactions, firstTxDate] = await Promise.all([
+        getDeBankWalletData(address),
+        getEVMTransactions(address),
+        getEVMFirstTransactionDate(address),
+      ]);
+
+      // Convert DeBank holdings to TokenHolding format
+      const enrichedHoldings: TokenHolding[] = deBankData.holdings.map(h => ({
+        symbol: h.symbol,
+        name: h.name,
+        amount: h.amount,
+        valueUsd: h.valueUsd,
+        percentOfPortfolio: 0, // Will be calculated later
+        isMeme: isMemeToken(h.symbol),
+        contractAddress: undefined,
+        isProtocolToken: h.isProtocolToken,
+        protocolName: h.protocolName,
+      }));
+
+      return {
+        rawHoldings: [], // Not needed when using DeBank
+        transactions,
+        firstTxDate,
+        enrichedHoldings,
+        totalValueUsd: deBankData.totalValueUsd,
+      };
+    } catch (error) {
+      console.error('DeBank API failed, falling back to Alchemy:', error);
+      // Fall through to Alchemy
+    }
+  }
+
+  // Fallback to Alchemy
   const [rawHoldings, transactions, firstTxDate] = await Promise.all([
     getEVMHoldings(address),
     getEVMTransactions(address),
@@ -205,6 +295,15 @@ async function fetchChainData(address: string, chain: ChainType): Promise<ChainD
     transactions,
     firstTxDate,
   };
+}
+
+/**
+ * Check if token is a meme token based on symbol
+ */
+function isMemeToken(symbol: string): boolean {
+  const memeKeywords = ['DOGE', 'SHIB', 'PEPE', 'FLOKI', 'BONK', 'WIF', 'MEME', 'WOJAK', 'NEIRO', 'POPCAT', 'MOG', 'BRETT', 'TURBO', 'COQ', 'MYRO', 'BOME'];
+  const upperSymbol = symbol.toUpperCase();
+  return memeKeywords.some(kw => upperSymbol.includes(kw));
 }
 
 /**

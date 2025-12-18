@@ -120,11 +120,11 @@ export default function AnalyzePage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 p-4">
-        <div className="max-w-2xl mx-auto space-y-6 py-8">
-          <Skeleton className="h-32 bg-gray-700" />
-          <Skeleton className="h-24 bg-gray-700" />
-          <Skeleton className="h-48 bg-gray-700" />
+      <main className="min-h-screen bg-gray-100 p-4">
+        <div className="max-w-3xl mx-auto space-y-6 py-8">
+          <Skeleton className="h-40 bg-gray-200 rounded-lg" />
+          <Skeleton className="h-28 bg-gray-200 rounded-lg" />
+          <Skeleton className="h-64 bg-gray-200 rounded-lg" />
         </div>
       </main>
     );
@@ -132,10 +132,10 @@ export default function AnalyzePage() {
 
   if (error || !result) {
     return (
-      <main className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
-        <Card className="bg-gray-800/50 border-gray-700 p-8 text-center">
-          <p className="text-red-400 mb-4">{error || '未找到分析结果'}</p>
-          <Button onClick={handleNewAnalysis} variant="outline">
+      <main className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+        <Card className="bg-white border-gray-200 shadow-xl rounded-lg p-8 text-center">
+          <p className="text-red-600 mb-4 font-medium">{error || '未找到分析结果'}</p>
+          <Button onClick={handleNewAnalysis} variant="outline" className="text-gray-800 border-gray-300 hover:bg-gray-100">
             返回首页
           </Button>
         </Card>
@@ -143,42 +143,42 @@ export default function AnalyzePage() {
     );
   }
 
-  const pnlColor = result.pnl.totalPnlPercent >= 0 ? 'text-green-400' : 'text-red-400';
+  const pnlColor = result.pnl.totalPnlPercent >= 0 ? 'text-green-600' : 'text-red-600';
   const pnlSign = result.pnl.totalPnlPercent >= 0 ? '+' : '';
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 p-4">
-      <div className="max-w-2xl mx-auto space-y-6 py-8">
+    <main className="min-h-screen bg-gray-100 p-4">
+      <div className="max-w-3xl mx-auto space-y-6 py-8">
         {/* Header */}
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-2">分析结果</h1>
-          <p className="text-gray-500 text-sm font-mono">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-extrabold text-gray-900 mb-2">分析结果</h1>
+          <p className="text-gray-500 font-mono">
             {result.address.slice(0, 6)}...{result.address.slice(-4)}
           </p>
-          <p className="text-gray-600 text-xs mt-1">
+          <p className="text-gray-400 text-sm mt-1">
             {result.chain.toUpperCase()} · {new Date(result.analyzedAt).toLocaleString()}
           </p>
         </div>
 
         {/* Main Tags */}
-        <Card className="bg-gray-800/50 border-gray-700">
+        <Card className="bg-white border-gray-200 shadow-lg rounded-lg">
           <CardContent className="p-6 text-center">
-            <h2 className="text-2xl font-bold text-white mb-4">
+            <h2 className="text-3xl font-bold text-gray-900 mb-3">
               {result.personality.tags.join(' + ')}
             </h2>
-            <p className="text-gray-400 leading-relaxed">
+            <p className="text-gray-600 leading-relaxed max-w-xl mx-auto">
               {result.aiContent.description}
             </p>
           </CardContent>
         </Card>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Total Value */}
-          <Card className="bg-gray-800/50 border-gray-700">
-            <CardContent className="p-4 text-center">
-              <p className="text-gray-500 text-sm mb-1">总资产</p>
-              <p className="text-2xl font-bold text-cyan-400">
+          <Card className="bg-white border-gray-200 shadow-lg rounded-lg">
+            <CardContent className="p-6 text-center">
+              <p className="text-gray-500 text-base mb-1">总资产</p>
+              <p className="text-4xl font-bold text-blue-600">
                 ${result.portfolio.totalValueUsd.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
@@ -188,10 +188,10 @@ export default function AnalyzePage() {
           </Card>
 
           {/* PnL */}
-          <Card className="bg-gray-800/50 border-gray-700">
-            <CardContent className="p-4 text-center">
-              <p className="text-gray-500 text-sm mb-1">盈亏</p>
-              <p className={`text-2xl font-bold ${pnlColor}`}>
+          <Card className="bg-white border-gray-200 shadow-lg rounded-lg">
+            <CardContent className="p-6 text-center">
+              <p className="text-gray-500 text-base mb-1">盈亏</p>
+              <p className={`text-4xl font-bold ${pnlColor}`}>
                 {pnlSign}{result.pnl.totalPnlPercent.toFixed(2)}%
               </p>
             </CardContent>
@@ -200,11 +200,11 @@ export default function AnalyzePage() {
 
         {/* K-Line Chart */}
         {result.klineData && (
-          <Card className="bg-gray-800/50 border-gray-700 overflow-hidden">
+          <Card className="bg-white border-gray-200 shadow-lg rounded-lg overflow-hidden">
             <CardHeader>
-              <CardTitle className="text-white text-lg flex items-center gap-2">
+              <CardTitle className="text-gray-900 text-xl font-bold flex items-center gap-2">
                 <span>我的袋子K线</span>
-                <span className="text-xs font-normal text-gray-500">运势预测 · 红涨绿跌</span>
+                <span className="text-sm font-normal text-gray-500">运势预测 · 红涨绿跌</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="p-2">
@@ -215,11 +215,11 @@ export default function AnalyzePage() {
 
         {/* BaZi Chart (八字命盘) */}
         {result.baziResult && (
-          <Card className="bg-gray-800/50 border-gray-700">
+          <Card className="bg-white border-gray-200 shadow-lg rounded-lg">
             <CardHeader>
-              <CardTitle className="text-white text-lg flex items-center gap-2">
+              <CardTitle className="text-gray-900 text-xl font-bold flex items-center gap-2">
                 <span>钱包命理</span>
-                <span className="text-xs font-normal text-gray-500">基于首次交易时间排盘</span>
+                <span className="text-sm font-normal text-gray-500">基于首次交易时间排盘</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4">
@@ -229,44 +229,44 @@ export default function AnalyzePage() {
         )}
 
         {/* Six Dimensions */}
-        <Card className="bg-gray-800/50 border-gray-700">
+        <Card className="bg-white border-gray-200 shadow-lg rounded-lg">
           <CardHeader>
-            <CardTitle className="text-white text-lg">六维画像</CardTitle>
+            <CardTitle className="text-gray-900 text-xl font-bold">六维画像</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-4">
-            <div className="flex justify-between items-center">
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+            <div className="flex justify-between items-center text-base">
               <span className="text-gray-500">交易风格</span>
-              <span className="text-white">
+              <span className="font-semibold text-gray-800">
                 {getDimensionLabel('tradingStyle', result.personality.tradingStyle)}
               </span>
             </div>
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center text-base">
               <span className="text-gray-500">代币偏好</span>
-              <span className="text-white">
+              <span className="font-semibold text-gray-800">
                 {getDimensionLabel('tokenPreference', result.personality.tokenPreference)}
               </span>
             </div>
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center text-base">
               <span className="text-gray-500">资金规模</span>
-              <span className="text-white">
+              <span className="font-semibold text-gray-800">
                 {getDimensionLabel('portfolioSize', result.personality.portfolioSize)}
               </span>
             </div>
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center text-base">
               <span className="text-gray-500">盈亏状态</span>
-              <span className="text-white">
+              <span className="font-semibold text-gray-800">
                 {getDimensionLabel('pnlStatus', result.personality.pnlStatus)}
               </span>
             </div>
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center text-base">
               <span className="text-gray-500">持仓集中度</span>
-              <span className="text-white">
+              <span className="font-semibold text-gray-800">
                 {getDimensionLabel('concentration', result.personality.concentration)}
               </span>
             </div>
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center text-base">
               <span className="text-gray-500">钱包年龄</span>
-              <span className="text-white">
+              <span className="font-semibold text-gray-800">
                 {getDimensionLabel('walletAge', result.personality.walletAge)}
               </span>
             </div>
@@ -275,23 +275,23 @@ export default function AnalyzePage() {
 
         {/* Top Holdings */}
         {result.portfolio.holdings.length > 0 && (
-          <Card className="bg-gray-800/50 border-gray-700">
+          <Card className="bg-white border-gray-200 shadow-lg rounded-lg">
             <CardHeader>
-              <CardTitle className="text-white text-lg">主要持仓</CardTitle>
+              <CardTitle className="text-gray-900 text-xl font-bold">主要持仓</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-4">
               {result.portfolio.holdings.slice(0, 5).map((holding, index) => (
                 <div key={index} className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <span className="text-white font-medium">{holding.symbol}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="font-semibold text-gray-800 text-base">{holding.symbol}</span>
                     {holding.isMeme && (
-                      <span className="text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded">
+                      <span className="text-xs bg-yellow-300/50 text-yellow-800 px-2 py-0.5 rounded-full font-medium">
                         Meme
                       </span>
                     )}
                   </div>
                   <div className="text-right">
-                    <p className="text-white">
+                    <p className="font-semibold text-gray-800">
                       ${holding.valueUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                     </p>
                     <p className="text-gray-500 text-sm">
@@ -305,33 +305,33 @@ export default function AnalyzePage() {
         )}
 
         {/* Roast Line */}
-        <Card className="bg-gray-800/50 border-gray-700">
+        <Card className="bg-yellow-100 border-yellow-200 shadow-lg rounded-lg">
           <CardContent className="p-6 text-center">
-            <p className="text-xl text-yellow-400 italic">
+            <p className="text-xl text-yellow-800 italic font-medium">
               "{result.aiContent.roastLine}"
             </p>
           </CardContent>
         </Card>
 
         {/* Actions */}
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4 pt-4">
           <Button
             onClick={handleShare}
-            className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+            className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 text-lg transition-all duration-200 shadow-lg hover:shadow-xl"
           >
             {copied ? '已复制!' : '分享图片链接'}
           </Button>
           <Button
             onClick={handleNewAnalysis}
             variant="outline"
-            className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700"
+            className="flex-1 border-gray-300 text-gray-800 hover:bg-gray-100 font-semibold py-3 text-lg"
           >
             再来一次
           </Button>
         </div>
 
         {/* Disclaimer */}
-        <p className="text-gray-600 text-xs text-center">
+        <p className="text-gray-400 text-xs text-center pt-4">
           仅供娱乐，不构成投资建议
         </p>
       </div>

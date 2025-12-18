@@ -96,6 +96,11 @@ export async function getTokenInfo(tokenIdOrSymbol: string): Promise<TokenInfo |
         }
         return null;
       }
+      if (response.status === 429) {
+        // Rate limited - return null instead of throwing
+        console.warn(`CoinGecko rate limited for ${tokenIdOrSymbol}`);
+        return null;
+      }
       throw new Error(`CoinGecko API error: ${response.status}`);
     }
 

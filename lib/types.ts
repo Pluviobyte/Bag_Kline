@@ -48,6 +48,15 @@ export interface TokenHolding {
   isMeme: boolean;
   contractAddress?: string;
   mint?: string;
+  isProtocolToken?: boolean;  // DeFi protocol token (aToken, cToken, etc.)
+  protocolName?: string;      // Protocol name (Aave, Compound, etc.)
+}
+
+export interface DeFiProtocol {
+  name: string;
+  netValue: number;
+  assetValue: number;
+  debtValue: number;
 }
 
 export interface PersonalityDimension {

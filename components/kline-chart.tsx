@@ -57,7 +57,7 @@ export function KLineChart({ data, height = 400 }: KLineChartProps) {
           silent: true,
           symbol: ['none', 'none'],
           lineStyle: {
-            color: '#666',
+            color: '#aaa',
             type: 'dashed',
           },
           data: [
@@ -65,7 +65,7 @@ export function KLineChart({ data, height = 400 }: KLineChartProps) {
               yAxis: 50,
               label: {
                 formatter: '中性线',
-                color: '#888',
+                color: '#666',
               },
             },
           ],
@@ -142,12 +142,12 @@ export function KLineChart({ data, height = 400 }: KLineChartProps) {
         left: 'center',
         top: 10,
         textStyle: {
-          color: '#fff',
+          color: '#333',
           fontSize: 18,
           fontWeight: 'bold' as const,
         },
         subtextStyle: {
-          color: '#888',
+          color: '#666',
           fontSize: 12,
         },
       },
@@ -156,10 +156,10 @@ export function KLineChart({ data, height = 400 }: KLineChartProps) {
         axisPointer: {
           type: 'cross',
         },
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        borderColor: '#333',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        borderColor: '#ccc',
         textStyle: {
-          color: '#fff',
+          color: '#333',
         },
         formatter: (params: unknown) => {
           const paramArr = params as Array<{ dataIndex: number }>;
@@ -176,7 +176,7 @@ export function KLineChart({ data, height = 400 }: KLineChartProps) {
           const eventText = point.event ? `<br/>事件: ${point.event}` : '';
 
           return `
-            <div style="padding: 8px;">
+            <div style="padding: 8px; color: #333">
               <div style="font-weight: bold; margin-bottom: 4px;">${point.date} ${typeLabel}</div>
               <div>运势分: ${point.score}</div>
               <div>开: ${point.open} | 收: ${point.close}</div>
@@ -190,7 +190,7 @@ export function KLineChart({ data, height = 400 }: KLineChartProps) {
         data: ['历史', '预测'],
         top: 50,
         textStyle: {
-          color: '#888',
+          color: '#666',
         },
       },
       grid: {
@@ -205,11 +205,11 @@ export function KLineChart({ data, height = 400 }: KLineChartProps) {
         data: dates,
         axisLine: {
           lineStyle: {
-            color: '#333',
+            color: '#ccc',
           },
         },
         axisLabel: {
-          color: '#888',
+          color: '#666',
           rotate: 45,
           fontSize: 10,
         },
@@ -223,16 +223,16 @@ export function KLineChart({ data, height = 400 }: KLineChartProps) {
         max: 100,
         axisLine: {
           lineStyle: {
-            color: '#333',
+            color: '#ccc',
           },
         },
         axisLabel: {
-          color: '#888',
+          color: '#666',
           formatter: '{value}分',
         },
         splitLine: {
           lineStyle: {
-            color: '#222',
+            color: '#eee',
             type: 'dashed',
           },
         },
@@ -248,18 +248,18 @@ export function KLineChart({ data, height = 400 }: KLineChartProps) {
           show: true,
           bottom: '2%',
           height: 20,
-          borderColor: '#333',
-          backgroundColor: '#111',
+          borderColor: '#ddd',
+          backgroundColor: '#f0f0f0',
           dataBackground: {
-            lineStyle: { color: '#333' },
-            areaStyle: { color: '#222' },
+            lineStyle: { color: '#ccc' },
+            areaStyle: { color: '#ddd' },
           },
           selectedDataBackground: {
-            lineStyle: { color: '#666' },
-            areaStyle: { color: '#333' },
+            lineStyle: { color: '#aaa' },
+            areaStyle: { color: '#ccc' },
           },
           textStyle: {
-            color: '#888',
+            color: '#666',
           },
         },
       ],
@@ -283,17 +283,16 @@ export function KLineChart({ data, height = 400 }: KLineChartProps) {
   }, [data]);
 
   return (
-    <div className="w-full rounded-lg bg-black/50 p-4">
+    <div className="w-full rounded-lg bg-gray-50/50 p-4">
       <ReactECharts
         option={option}
         style={{ height: `${height}px`, width: '100%' }}
-        theme="dark"
         opts={{ renderer: 'canvas' }}
       />
       {/* Summary below chart */}
       <div className="mt-4 grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
-        <div className="rounded-lg bg-gray-800/50 p-3 text-center">
-          <div className="text-gray-400">当前运势</div>
+        <div className="rounded-lg bg-gray-100 p-3 text-center">
+          <div className="text-gray-600">当前运势</div>
           <div
             className={`text-2xl font-bold ${
               data.summary.currentScore >= 60
@@ -306,9 +305,9 @@ export function KLineChart({ data, height = 400 }: KLineChartProps) {
             {data.summary.currentScore}分
           </div>
         </div>
-        <div className="rounded-lg bg-gray-800/50 p-3 text-center">
-          <div className="text-gray-400">趋势</div>
-          <div className="text-xl">
+        <div className="rounded-lg bg-gray-100 p-3 text-center">
+          <div className="text-gray-600">趋势</div>
+          <div className="text-xl text-gray-800">
             {data.summary.trend === 'up'
               ? '📈 上升'
               : data.summary.trend === 'down'
@@ -316,21 +315,21 @@ export function KLineChart({ data, height = 400 }: KLineChartProps) {
               : '➡️ 横盘'}
           </div>
         </div>
-        <div className="rounded-lg bg-gray-800/50 p-3 text-center">
-          <div className="text-gray-400">最佳时期</div>
-          <div className="text-lg text-red-400">{data.summary.bestPeriod}</div>
+        <div className="rounded-lg bg-gray-100 p-3 text-center">
+          <div className="text-gray-600">最佳时期</div>
+          <div className="text-lg text-red-500">{data.summary.bestPeriod}</div>
         </div>
-        <div className="rounded-lg bg-gray-800/50 p-3 text-center">
-          <div className="text-gray-400">最差时期</div>
-          <div className="text-lg text-green-400">{data.summary.worstPeriod}</div>
+        <div className="rounded-lg bg-gray-100 p-3 text-center">
+          <div className="text-gray-600">最差时期</div>
+          <div className="text-lg text-green-500">{data.summary.worstPeriod}</div>
         </div>
       </div>
       {data.summary.nextPeak && (
-        <div className="mt-3 rounded-lg bg-purple-900/30 p-3 text-center">
-          <span className="text-purple-400">🔮 预测高点: </span>
-          <span className="font-bold text-purple-300">{data.summary.nextPeak}</span>
+        <div className="mt-3 rounded-lg bg-purple-100/50 p-3 text-center">
+          <span className="text-purple-700">🔮 预测高点: </span>
+          <span className="font-bold text-purple-800">{data.summary.nextPeak}</span>
           {data.summary.advice && (
-            <span className="ml-2 text-gray-400">| {data.summary.advice}</span>
+            <span className="ml-2 text-gray-600">| {data.summary.advice}</span>
           )}
         </div>
       )}

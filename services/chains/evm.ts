@@ -1,77 +1,93 @@
-import { Alchemy, Network, AssetTransfersCategory, SortingOrder } from 'alchemy-sdk';
 import { RawEVMHolding } from '@/lib/types';
 
 const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY;
 
-// Initialize Alchemy SDK for Ethereum mainnet
-function getAlchemy(): Alchemy {
-  return new Alchemy({
-    apiKey: ALCHEMY_API_KEY || 'demo', // Use demo key if not configured
-    network: Network.ETH_MAINNET,
-  });
-}
-
-interface AlchemyTransfer {
-  blockNum: string;
-  hash: string;
-  from: string;
-  to: string;
-  value: number | null;
-  asset: string | null;
-  category: string;
-  metadata: {
-    blockTimestamp: string;
-  };
-}
-
 /**
- * Get token holdings for an EVM wallet
+ * Get token holdings for an EVM wallet using direct API calls
  * @param address - EVM wallet address (0x...)
  * @returns Array of token holdings
  */
 export async function getEVMHoldings(address: string): Promise<RawEVMHolding[]> {
-  const alchemy = getAlchemy();
+  const apiKey = ALCHEMY_API_KEY || 'demo';
+  const url = `https://eth-mainnet.g.alchemy.com/v2/${apiKey}`;
   const holdings: RawEVMHolding[] = [];
 
   try {
     // Get native ETH balance
-    const ethBalance = await alchemy.core.getBalance(address);
-    const ethBalanceNum = parseFloat(ethBalance.toString()) / 1e18;
+    const ethResponse = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'eth_getBalance',
+        params: [address, 'latest'],
+      }),
+    });
 
-    if (ethBalanceNum > 0) {
-      holdings.push({
-        contractAddress: '0x0000000000000000000000000000000000000000',
-        symbol: 'ETH',
-        name: 'Ethereum',
-        balance: ethBalanceNum,
-        decimals: 18,
-      });
+    const ethData = await ethResponse.json();
+    if (ethData.result) {
+      const ethBalance = parseInt(ethData.result, 16) / 1e18;
+      if (ethBalance > 0) {
+        holdings.push({
+          contractAddress: '0x0000000000000000000000000000000000000000',
+          symbol: 'ETH',
+          name: 'Ethereum',
+          balance: ethBalance,
+          decimals: 18,
+        });
+      }
     }
 
     // Get ERC20 token balances
-    const tokenBalances = await alchemy.core.getTokenBalances(address);
+    const tokenResponse = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 2,
+        method: 'alchemy_getTokenBalances',
+        params: [address],
+      }),
+    });
 
-    for (const token of tokenBalances.tokenBalances) {
-      if (token.tokenBalance === '0x0' || token.tokenBalance === '0') {
-        continue;
-      }
-
-      try {
-        const metadata = await alchemy.core.getTokenMetadata(token.contractAddress);
-        const decimals = metadata.decimals || 18;
-        const balance = parseInt(token.tokenBalance || '0', 16) / Math.pow(10, decimals);
-
-        if (balance > 0) {
-          holdings.push({
-            contractAddress: token.contractAddress,
-            symbol: metadata.symbol,
-            name: metadata.name,
-            balance,
-            decimals,
-          });
+    const tokenData = await tokenResponse.json();
+    if (tokenData.result?.tokenBalances) {
+      for (const token of tokenData.result.tokenBalances) {
+        if (token.tokenBalance === '0x0' || token.tokenBalance === '0' || token.tokenBalance === '0x') {
+          continue;
         }
-      } catch (error) {
-        console.warn(`Failed to get metadata for token ${token.contractAddress}:`, error);
+
+        try {
+          // Get token metadata
+          const metadataResponse = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              id: 3,
+              method: 'alchemy_getTokenMetadata',
+              params: [token.contractAddress],
+            }),
+          });
+
+          const metadataData = await metadataResponse.json();
+          const metadata = metadataData.result;
+          const decimals = metadata?.decimals || 18;
+          const balance = parseInt(token.tokenBalance || '0', 16) / Math.pow(10, decimals);
+
+          if (balance > 0) {
+            holdings.push({
+              contractAddress: token.contractAddress,
+              symbol: metadata?.symbol || 'UNKNOWN',
+              name: metadata?.name || 'Unknown Token',
+              balance,
+              decimals,
+            });
+          }
+        } catch (error) {
+          console.warn(`Failed to get metadata for token ${token.contractAddress}:`, error);
+        }
       }
     }
 
@@ -111,46 +127,77 @@ export async function getEVMHoldings(address: string): Promise<RawEVMHolding[]> 
   }
 }
 
+interface AlchemyTransfer {
+  blockNum: string;
+  hash: string;
+  from: string;
+  to: string;
+  value: number | null;
+  asset: string | null;
+  category: string;
+  metadata: {
+    blockTimestamp: string;
+  };
+}
+
 /**
  * Get transaction history for an EVM wallet (last 30 days)
+ * Uses direct API calls for reliability
  * @param address - EVM wallet address (0x...)
  * @returns Array of transfers
  */
 export async function getEVMTransactions(address: string): Promise<AlchemyTransfer[]> {
-  const alchemy = getAlchemy();
+  const apiKey = ALCHEMY_API_KEY || 'demo';
+  const url = `https://eth-mainnet.g.alchemy.com/v2/${apiKey}`;
 
   try {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     // Get outgoing transfers
-    const outgoingTransfers = await alchemy.core.getAssetTransfers({
-      fromAddress: address,
-      category: [
-        AssetTransfersCategory.ERC20,
-        AssetTransfersCategory.EXTERNAL,
-      ],
-      maxCount: 500,
-      withMetadata: true,
+    const outgoingResponse = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'alchemy_getAssetTransfers',
+        params: [{
+          fromAddress: address,
+          category: ['external', 'erc20'],
+          maxCount: '0x1f4', // 500
+          withMetadata: true,
+        }],
+      }),
     });
+
+    const outgoingData = await outgoingResponse.json();
 
     // Get incoming transfers
-    const incomingTransfers = await alchemy.core.getAssetTransfers({
-      toAddress: address,
-      category: [
-        AssetTransfersCategory.ERC20,
-        AssetTransfersCategory.EXTERNAL,
-      ],
-      maxCount: 500,
-      withMetadata: true,
+    const incomingResponse = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 2,
+        method: 'alchemy_getAssetTransfers',
+        params: [{
+          toAddress: address,
+          category: ['external', 'erc20'],
+          maxCount: '0x1f4', // 500
+          withMetadata: true,
+        }],
+      }),
     });
 
-    // Combine and filter by date
+    const incomingData = await incomingResponse.json();
+
+    // Combine transfers
     const allTransfers = [
-      ...outgoingTransfers.transfers,
-      ...incomingTransfers.transfers,
+      ...(outgoingData.result?.transfers || []),
+      ...(incomingData.result?.transfers || []),
     ].filter(tx => {
-      const txDate = new Date(tx.metadata.blockTimestamp);
+      const txDate = new Date(tx.metadata?.blockTimestamp);
       return txDate >= thirtyDaysAgo;
     });
 
@@ -169,44 +216,72 @@ export async function getEVMTransactions(address: string): Promise<AlchemyTransf
 
 /**
  * Get the first transaction date for an EVM wallet
+ * Uses direct API call for more reliable results
  * @param address - EVM wallet address (0x...)
  * @returns Date of first transaction
  */
 export async function getEVMFirstTransactionDate(address: string): Promise<Date> {
-  const alchemy = getAlchemy();
+  const apiKey = ALCHEMY_API_KEY || 'demo';
+  const url = `https://eth-mainnet.g.alchemy.com/v2/${apiKey}`;
 
   try {
-    const transfers = await alchemy.core.getAssetTransfers({
-      fromAddress: address,
-      category: [
-        AssetTransfersCategory.ERC20,
-        AssetTransfersCategory.EXTERNAL,
-      ],
-      maxCount: 1000,
-      order: SortingOrder.ASCENDING,
-      withMetadata: true,
+    // First try outgoing transfers (oldest first)
+    const outgoingResponse = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'alchemy_getAssetTransfers',
+        params: [{
+          fromAddress: address,
+          category: ['external', 'erc20'],
+          maxCount: '0x1',
+          order: 'asc',
+          withMetadata: true,
+        }],
+      }),
     });
 
-    if (transfers.transfers.length > 0) {
-      const oldestTx = transfers.transfers[0];
-      return new Date(oldestTx.metadata.blockTimestamp);
+    const outgoingData = await outgoingResponse.json();
+
+    if (outgoingData.result?.transfers?.length > 0) {
+      const timestamp = outgoingData.result.transfers[0].metadata?.blockTimestamp;
+      if (timestamp) {
+        console.log('Found first outgoing tx date:', timestamp);
+        return new Date(timestamp);
+      }
     }
 
-    const incomingTransfers = await alchemy.core.getAssetTransfers({
-      toAddress: address,
-      category: [
-        AssetTransfersCategory.ERC20,
-        AssetTransfersCategory.EXTERNAL,
-      ],
-      maxCount: 1000,
-      order: SortingOrder.ASCENDING,
-      withMetadata: true,
+    // Try incoming transfers if no outgoing found
+    const incomingResponse = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 2,
+        method: 'alchemy_getAssetTransfers',
+        params: [{
+          toAddress: address,
+          category: ['external', 'erc20'],
+          maxCount: '0x1',
+          order: 'asc',
+          withMetadata: true,
+        }],
+      }),
     });
 
-    if (incomingTransfers.transfers.length > 0) {
-      return new Date(incomingTransfers.transfers[0].metadata.blockTimestamp);
+    const incomingData = await incomingResponse.json();
+
+    if (incomingData.result?.transfers?.length > 0) {
+      const timestamp = incomingData.result.transfers[0].metadata?.blockTimestamp;
+      if (timestamp) {
+        console.log('Found first incoming tx date:', timestamp);
+        return new Date(timestamp);
+      }
     }
 
+    console.log('No transactions found for address:', address);
     return new Date();
   } catch (error) {
     console.error('Error getting first transaction date:', error);
@@ -223,10 +298,26 @@ export async function getEVMFirstTransactionDate(address: string): Promise<Date>
  * @returns ETH balance
  */
 export async function getETHBalance(address: string): Promise<number> {
-  const alchemy = getAlchemy();
+  const apiKey = ALCHEMY_API_KEY || 'demo';
+  const url = `https://eth-mainnet.g.alchemy.com/v2/${apiKey}`;
+
   try {
-    const balance = await alchemy.core.getBalance(address);
-    return parseFloat(balance.toString()) / 1e18;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'eth_getBalance',
+        params: [address, 'latest'],
+      }),
+    });
+
+    const data = await response.json();
+    if (data.result) {
+      return parseInt(data.result, 16) / 1e18;
+    }
+    return 0;
   } catch {
     return 0;
   }
