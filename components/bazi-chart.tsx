@@ -152,7 +152,7 @@ export function BaZiChart({ data }: BaZiChartProps) {
         </div>
       </div>
 
-      {/* 2025流年运势 */}
+      {/* 2026流年运势 */}
       <div className="rounded-lg bg-gradient-to-br from-orange-100 to-red-100 p-4">
         <h3 className="mb-3 flex items-center gap-2 text-lg font-bold text-gray-800">
           <span>🔮</span>

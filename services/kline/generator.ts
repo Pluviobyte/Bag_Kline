@@ -1,4 +1,5 @@
 import { KLineData, KLinePoint, TokenHolding } from '@/lib/types';
+import { getTokenOHLC, getTokenInfo } from '../price/coingecko';
 import dayjs from 'dayjs';
 
 interface Transaction {
@@ -16,7 +17,7 @@ interface MonthlyData {
   events: string[];
 }
 
-// 特殊事件日期
+// Special event dates for simulation fallback
 const CRYPTO_EVENTS: Record<string, string> = {
   '2024-04': 'BTC减半',
   '2024-01': 'ETF通过',
@@ -28,43 +29,34 @@ const CRYPTO_EVENTS: Record<string, string> = {
 };
 
 /**
- * 根据盈亏百分比计算运势分数
- * 映射：-100% -> 10分, 0% -> 50分, +100% -> 90分
+ * Calculate score based on PnL percent (for simulation)
  */
 function calculateFortuneScore(pnlPercent: number): number {
-  // 限制范围 [-200%, +500%]
   const clampedPnl = Math.max(-200, Math.min(500, pnlPercent));
-
-  // 非线性映射，让极端值更突出
   let score: number;
   if (clampedPnl >= 0) {
-    // 正收益：50 + (pnl/100) * 40，上限90
     score = 50 + (clampedPnl / 100) * 40;
   } else {
-    // 负收益：50 + (pnl/100) * 40，下限10
     score = 50 + (clampedPnl / 100) * 40;
   }
-
   return Math.max(10, Math.min(95, Math.round(score)));
 }
 
 /**
- * 根据分数变化判断标签
+ * Get label based on score change
  */
 function getScoreLabel(score: number, prevScore: number): string | undefined {
   const change = score - prevScore;
-
   if (score >= 80 && change > 10) return '主升浪';
   if (score >= 70 && change > 5) return '小牛市';
   if (score <= 30 && change < -10) return '至暗时刻';
   if (score <= 40 && change < -5) return '低谷期';
   if (Math.abs(change) <= 3) return '横盘震荡';
-
   return undefined;
 }
 
 /**
- * 生成模拟的月度数据（当没有详细交易记录时）
+ * Generate simulated monthly data (Fallback)
  */
 function generateSimulatedMonthlyData(
   firstTxDate: string,
@@ -78,8 +70,6 @@ function generateSimulatedMonthlyData(
   let currentDate = startDate.startOf('month');
   const totalMonths = endDate.diff(startDate, 'month') + 1;
 
-  // 生成从开始到现在的每月数据
-  // 使用随机游走 + 最终收敛到当前PnL
   let runningPnl = 0;
   const targetPnl = currentPnlPercent;
   const monthlyDrift = (targetPnl - runningPnl) / totalMonths;
@@ -89,18 +79,15 @@ function generateSimulatedMonthlyData(
     const month = currentDate.format('YYYY-MM');
     const isLastMonth = currentDate.isSame(endDate, 'month');
 
-    // 添加随机波动
-    const volatility = 15 + Math.random() * 20; // 15-35%波动
+    const volatility = 15 + Math.random() * 20;
     const randomChange = (Math.random() - 0.5) * volatility;
 
-    // 如果是最后一个月，使用实际PnL
     if (isLastMonth) {
       runningPnl = targetPnl;
     } else {
       runningPnl += monthlyDrift + randomChange;
     }
 
-    // 检查是否有重大事件
     const events: string[] = [];
     if (CRYPTO_EVENTS[month]) {
       events.push(CRYPTO_EVENTS[month]);
@@ -112,7 +99,7 @@ function generateSimulatedMonthlyData(
     months.push({
       month,
       txCount: monthIndex === totalMonths - 1 ? txCount30d : Math.floor(Math.random() * 20) + 1,
-      totalValueChange: runningPnl * 100, // 简化
+      totalValueChange: runningPnl * 100,
       pnlPercent: runningPnl,
       events,
     });
@@ -125,22 +112,18 @@ function generateSimulatedMonthlyData(
 }
 
 /**
- * 生成K线数据点
+ * Generate K-Line points from simulated data
  */
-function generateKLinePoints(monthlyData: MonthlyData[]): KLinePoint[] {
+function generateSimulatedPoints(monthlyData: MonthlyData[]): KLinePoint[] {
   const points: KLinePoint[] = [];
-  let prevScore = 50; // 初始分数
+  let prevScore = 50;
 
   for (let i = 0; i < monthlyData.length; i++) {
     const data = monthlyData[i];
     const score = calculateFortuneScore(data.pnlPercent);
 
-    // 生成OHLC数据
-    // Open: 上一个月的close
     const open = prevScore;
-    // Close: 当月最终分数
     const close = score;
-    // High/Low: 基于波动范围
     const volatility = Math.abs(score - prevScore) * 0.3 + 5;
     const high = Math.min(95, Math.max(open, close) + Math.random() * volatility);
     const low = Math.max(5, Math.min(open, close) - Math.random() * volatility);
@@ -169,8 +152,47 @@ function generateKLinePoints(monthlyData: MonthlyData[]): KLinePoint[] {
 }
 
 /**
- * 计算摘要信息
+ * Generate K-Line points from Real OHLC data
  */
+function generateRealPoints(ohlc: number[][]): KLinePoint[] {
+  if (!ohlc || ohlc.length === 0) return [];
+
+  // Calculate min/max for score normalization
+  const prices = ohlc.map(p => p[4]); // close prices
+  const minPrice = Math.min(...prices);
+  const maxPrice = Math.max(...prices);
+  const range = maxPrice - minPrice || 1;
+
+  return ohlc.map((p, index) => {
+    const [timestamp, open, high, low, close] = p;
+    const date = dayjs(timestamp).format('YYYY-MM-DD');
+    
+    // Normalize price to 0-100 for score usage (though we display real price)
+    // 10-90 range to avoid extremes
+    const score = 10 + ((close - minPrice) / range) * 80;
+
+    let prevScore = 50;
+    if (index > 0) {
+      const prevClose = ohlc[index - 1][4];
+      prevScore = 10 + ((prevClose - minPrice) / range) * 80;
+    }
+
+    const label = getScoreLabel(score, prevScore);
+
+    return {
+      date,
+      score: Math.round(score),
+      open,
+      close,
+      high,
+      low,
+      type: 'history',
+      label,
+      volume: 100 // Placeholder or normalize real volume if available
+    };
+  });
+}
+
 function calculateSummary(points: KLinePoint[]): KLineData['summary'] {
   if (points.length === 0) {
     return {
@@ -183,7 +205,6 @@ function calculateSummary(points: KLinePoint[]): KLineData['summary'] {
 
   const currentScore = points[points.length - 1].score;
 
-  // 找最佳和最差时期
   let bestPoint = points[0];
   let worstPoint = points[0];
 
@@ -192,13 +213,12 @@ function calculateSummary(points: KLinePoint[]): KLineData['summary'] {
     if (point.score < worstPoint.score) worstPoint = point;
   }
 
-  // 判断趋势（最近3个月）
   let trend: 'up' | 'down' | 'sideways' = 'sideways';
   if (points.length >= 3) {
     const recent = points.slice(-3);
-    const avgChange = (recent[2].score - recent[0].score) / 2;
-    if (avgChange > 3) trend = 'up';
-    else if (avgChange < -3) trend = 'down';
+    const change = (recent[2].close - recent[0].close) / recent[0].close;
+    if (change > 0.05) trend = 'up';
+    else if (change < -0.05) trend = 'down';
   }
 
   return {
@@ -210,72 +230,118 @@ function calculateSummary(points: KLinePoint[]): KLineData['summary'] {
 }
 
 /**
- * 主函数：生成K线数据
+ * Main function: Generate K-Line Data (Async)
  */
-export function generateKLineData(params: {
+export async function generateKLineData(params: {
   transactions?: Transaction[];
   holdings: TokenHolding[];
   firstTxDate: string;
   totalValueUsd: number;
   currentPnlPercent: number;
   txCount30d: number;
-}): KLineData {
-  const { firstTxDate, currentPnlPercent, txCount30d } = params;
+}): Promise<KLineData> {
+  const { holdings, firstTxDate, currentPnlPercent, txCount30d } = params;
 
-  // 如果没有详细交易记录，使用模拟数据
-  // 实际场景中应该从链上解析详细的月度PnL
+  // 1. Try to get real data for the top holding
+  const topHolding = holdings.sort((a, b) => b.valueUsd - a.valueUsd)[0];
+  
+  if (topHolding && topHolding.symbol) {
+    try {
+      // Get token ID first
+      const tokenInfo = await getTokenInfo(topHolding.symbol);
+      if (tokenInfo) {
+        // Fetch 90 days of OHLC
+        const ohlc = await getTokenOHLC(tokenInfo.id, 90);
+        if (ohlc && ohlc.length > 0) {
+          const points = generateRealPoints(ohlc);
+          return {
+            points,
+            summary: {
+              ...calculateSummary(points),
+              assetName: topHolding.symbol,
+            },
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch real K-line data, falling back to simulation', e);
+    }
+  }
+
+  // 2. Fallback to simulation
   const monthlyData = generateSimulatedMonthlyData(
-    firstTxDate,
+    firstTxDate || dayjs().subtract(1, 'year').format('YYYY-MM-DD'),
     currentPnlPercent,
     txCount30d
   );
 
-  // 生成K线数据点
-  const historyPoints = generateKLinePoints(monthlyData);
-
-  // 计算摘要
-  const summary = calculateSummary(historyPoints);
+  const historyPoints = generateSimulatedPoints(monthlyData);
 
   return {
     points: historyPoints,
-    summary,
+    summary: {
+      ...calculateSummary(historyPoints),
+      assetName: '模拟趋势',
+    },
   };
 }
 
 /**
- * 添加AI预测数据到K线
+ * Add prediction to K-Line (supports both Score and Price scales)
  */
 export function addPredictionToKLine(
   klineData: KLineData,
   predictions: Array<{ date: string; score: number; label?: string }>
 ): KLineData {
-  const lastHistoryPoint = klineData.points[klineData.points.length - 1];
-  let prevScore = lastHistoryPoint?.score || 50;
+  if (klineData.points.length === 0) return klineData;
+
+  const lastPoint = klineData.points[klineData.points.length - 1];
+  const lastClose = lastPoint.close;
+  
+  // Determine if we are using Real Price scale or Score scale
+  // If lastClose is > 200, it's likely a real price (unless it's a very high score, but scores are capped at 100 in simulation)
+  // Actually, safe heuristic: if it came from generateRealPoints, it's price.
+  // We can treat it uniformly: map prediction score (0-100) to % change from last Close.
+  
+  // Base volatility for prediction
+  // 50 score = 0% change. 
+  // 100 score = +5% change per step (compounding? or absolute?)
+  // Let's do simple relative change from the *previous* point in the prediction chain.
+  
+  let prevClose = lastClose;
+  let prevScore = 50; // Neutral baseline for AI score
 
   const predictionPoints: KLinePoint[] = predictions.map((pred) => {
-    const open = prevScore;
-    const close = pred.score;
-    const volatility = Math.abs(pred.score - prevScore) * 0.3 + 5;
-    const high = Math.min(95, Math.max(open, close) + volatility * 0.5);
-    const low = Math.max(5, Math.min(open, close) - volatility * 0.5);
+    // Calculate % change based on score (50 is neutral)
+    // Range: 20 (bearish) -> 80 (bullish)
+    // Change: (score - 50) / 10 => -3% to +3% per step
+    const percentChange = (pred.score - 50) / 1500; // e.g. 30/1500 = 0.02 = 2%
 
-    prevScore = pred.score;
+    const open = prevClose;
+    const close = prevClose * (1 + percentChange);
+    
+    // Volatility for High/Low
+    const volatility = close * 0.02; // 2% volatility
+    const high = Math.max(open, close) + volatility;
+    const low = Math.min(open, close) - volatility;
+
+    prevClose = close;
 
     return {
       date: pred.date,
-      score: pred.score,
-      open: Math.round(open),
-      close: Math.round(close),
-      high: Math.round(high),
-      low: Math.round(low),
+      score: pred.score, // Keep the AI score for color coding
+      open,
+      close,
+      high,
+      low,
       type: 'prediction' as const,
       label: pred.label,
     };
   });
 
-  // 找预测中的高点
+  // Find peak prediction date
   const peakPrediction = predictionPoints.reduce((max, p) =>
-    p.score > max.score ? p : max, predictionPoints[0]);
+    p.close > max.close ? p : max, predictionPoints[0]);
 
   return {
     points: [...klineData.points, ...predictionPoints],

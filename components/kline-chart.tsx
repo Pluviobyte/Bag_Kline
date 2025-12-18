@@ -121,11 +121,11 @@ export function KLineChart({ data, height = 550 }: KLineChartProps) {
         pieces: [
           {
             value: 1,
-            color: '#ef4444' // Up: Red
+            color: '#22c55e' // Up: Green
           },
           {
             value: -1,
-            color: '#22c55e' // Down: Green
+            color: '#ef4444' // Down: Red
           }
         ]
       },
@@ -207,10 +207,10 @@ export function KLineChart({ data, height = 550 }: KLineChartProps) {
           type: 'candlestick',
           data: values,
           itemStyle: {
-            color: '#ef4444',
-            color0: '#22c55e',
-            borderColor: '#ef4444',
-            borderColor0: '#22c55e'
+            color: '#22c55e',
+            color0: '#ef4444',
+            borderColor: '#22c55e',
+            borderColor0: '#ef4444'
           },
           markPoint: {
             label: {
@@ -349,9 +349,9 @@ export function KLineChart({ data, height = 550 }: KLineChartProps) {
           <div
             className={`text-2xl font-bold ${
               data.summary.currentScore >= 60
-                ? 'text-red-500'
-                : data.summary.currentScore <= 40
                 ? 'text-green-500'
+                : data.summary.currentScore <= 40
+                ? 'text-red-500'
                 : 'text-yellow-500'
             }`}
           >
@@ -370,11 +370,11 @@ export function KLineChart({ data, height = 550 }: KLineChartProps) {
         </div>
         <div className="text-center">
           <div className="text-gray-500 text-xs mb-1">最佳时期</div>
-          <div className="text-base text-red-500 font-medium">{data.summary.bestPeriod}</div>
+          <div className="text-base text-green-500 font-medium">{data.summary.bestPeriod}</div>
         </div>
         <div className="text-center">
           <div className="text-gray-500 text-xs mb-1">最差时期</div>
-          <div className="text-base text-green-500 font-medium">{data.summary.worstPeriod}</div>
+          <div className="text-base text-red-500 font-medium">{data.summary.worstPeriod}</div>
         </div>
       </div>
       {data.summary.nextPeak && (

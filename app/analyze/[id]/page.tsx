@@ -9,6 +9,7 @@ import { AnalysisResult } from '@/lib/types';
 import { KLineChart } from '@/components/kline-chart';
 import { BaZiChart } from '@/components/bazi-chart';
 import { RadarChart } from '@/components/radar-chart';
+import { AnalysisFooter } from '@/components/analysis-footer';
 
 // Dimension label mapping
 const dimensionLabels: Record<string, Record<string, string>> = {
@@ -60,6 +61,10 @@ export default function AnalyzePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  const AUTHOR_EVM_ADDRESS = '0x44361e4aa7b32a30afdd350c4811e78a631b2e99';
+  const AUTHOR_X_URL = 'https://x.com/Pluvio9yte';
 
   useEffect(() => {
     // Try to get from localStorage first
@@ -96,7 +101,7 @@ export default function AnalyzePage() {
   const handleShare = async () => {
     if (!result) return;
 
-    const shareUrl = `${window.location.origin}/api/image/${id}?tags=${encodeURIComponent(result.personality.tags.join(' + '))}&pnl=${result.pnl.totalPnlPercent}&roast=${encodeURIComponent(result.aiContent.roastLine)}&value=${result.portfolio.totalValueUsd}`;
+    const shareUrl = `${window.location.origin}/api/image/${id}?tags=${encodeURIComponent(result.personality.tags.join(' + '))}&pnl=${result.pnl.totalPnlPercent}&roast=${encodeURIComponent(result.aiContent.roastLine)}&value=${result.portfolio.totalValueUsd}&chain=${result.chain}&age=${encodeURIComponent(getDimensionLabel('walletAge', result.personality.walletAge))}&asset=${result.portfolio.holdings[0]?.symbol || ''}&count=${result.trading.txCount30d}`;
 
     try {
       await navigator.clipboard.writeText(shareUrl);
@@ -112,6 +117,30 @@ export default function AnalyzePage() {
       document.body.removeChild(textArea);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!result) return;
+
+    setDownloading(true);
+    const imageUrl = `/api/image/${id}?tags=${encodeURIComponent(result.personality.tags.join(' + '))}&pnl=${result.pnl.totalPnlPercent}&roast=${encodeURIComponent(result.aiContent.roastLine)}&value=${result.portfolio.totalValueUsd}&chain=${result.chain}&age=${encodeURIComponent(getDimensionLabel('walletAge', result.personality.walletAge))}&asset=${result.portfolio.holdings[0]?.symbol || ''}&count=${result.trading.txCount30d}`;
+
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `bagkline-${result.address.slice(0, 8)}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download failed:', err);
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -148,26 +177,31 @@ export default function AnalyzePage() {
   const pnlSign = result.pnl.totalPnlPercent >= 0 ? '+' : '';
 
   return (
-    <main className="min-h-screen bg-gray-100 p-4">
+    <main className="min-h-screen bg-gray-50 p-4 font-sans">
       <div className="max-w-3xl mx-auto space-y-6 py-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-extrabold text-gray-900 mb-2">分析结果</h1>
-          <p className="text-gray-500 font-mono">
+          <h1 className="text-4xl font-extrabold text-gray-900 mb-2 tracking-tight">分析结果</h1>
+          <p className="text-gray-500 font-mono text-lg">
             {result.address.slice(0, 6)}...{result.address.slice(-4)}
           </p>
-          <p className="text-gray-400 text-sm mt-1">
-            {result.chain.toUpperCase()} · {new Date(result.analyzedAt).toLocaleString()}
-          </p>
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <span className="bg-gray-200 px-2 py-0.5 rounded text-xs font-semibold text-gray-700 uppercase">
+              {result.chain}
+            </span>
+            <span className="text-gray-400 text-sm">
+              {new Date(result.analyzedAt).toLocaleString()}
+            </span>
+          </div>
         </div>
 
         {/* Main Tags */}
-        <Card className="bg-white border-gray-200 shadow-lg rounded-lg">
-          <CardContent className="p-6 text-center">
-            <h2 className="text-3xl font-bold text-gray-900 mb-3">
+        <Card className="bg-white border-gray-200 shadow-xl rounded-2xl overflow-hidden">
+          <CardContent className="p-8 text-center bg-gradient-to-b from-white to-gray-50">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4 leading-tight">
               {result.personality.tags.join(' + ')}
             </h2>
-            <p className="text-gray-600 leading-relaxed max-w-xl mx-auto">
+            <p className="text-gray-600 leading-relaxed max-w-xl mx-auto text-lg">
               {result.aiContent.description}
             </p>
           </CardContent>
@@ -176,10 +210,10 @@ export default function AnalyzePage() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Total Value */}
-          <Card className="bg-white border-gray-200 shadow-lg rounded-lg">
+          <Card className="bg-white border-gray-200 shadow-lg rounded-xl">
             <CardContent className="p-6 text-center">
-              <p className="text-gray-500 text-base mb-1">总资产</p>
-              <p className="text-4xl font-bold text-blue-600">
+              <p className="text-gray-500 text-sm font-medium uppercase tracking-wide mb-1">总资产估值</p>
+              <p className="text-4xl font-bold text-gray-900">
                 ${result.portfolio.totalValueUsd.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
@@ -189,9 +223,9 @@ export default function AnalyzePage() {
           </Card>
 
           {/* PnL */}
-          <Card className="bg-white border-gray-200 shadow-lg rounded-lg">
+          <Card className="bg-white border-gray-200 shadow-lg rounded-xl">
             <CardContent className="p-6 text-center">
-              <p className="text-gray-500 text-base mb-1">盈亏</p>
+              <p className="text-gray-500 text-sm font-medium uppercase tracking-wide mb-1">预估盈亏</p>
               <p className={`text-4xl font-bold ${pnlColor}`}>
                 {pnlSign}{result.pnl.totalPnlPercent.toFixed(2)}%
               </p>
@@ -201,29 +235,37 @@ export default function AnalyzePage() {
 
         {/* K-Line Chart */}
         {result.klineData && (
-          <Card className="bg-white border-gray-200 shadow-lg rounded-lg overflow-hidden">
-            <CardHeader>
-              <CardTitle className="text-gray-900 text-xl font-bold flex items-center gap-2">
-                <span>我的袋子K线</span>
-                <span className="text-sm font-normal text-gray-500">运势预测 · 红涨绿跌</span>
+          <Card className="bg-white border-gray-200 shadow-lg rounded-xl overflow-hidden">
+            <CardHeader className="border-b border-gray-100 pb-4">
+              <CardTitle className="text-gray-900 text-xl font-bold flex flex-col sm:flex-row sm:items-center gap-2">
+                <span>
+                  {result.klineData.summary.assetName
+                    ? `${result.klineData.summary.assetName} 走势预测`
+                    : '我的袋子K线'}
+                </span>
+                <span className="text-sm font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded-md">
+                  {result.klineData.summary.assetName
+                    ? '基于主要持仓 · AI 趋势推演'
+                    : '运势预测 · 红涨绿跌'}
+                </span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-2">
-              <KLineChart data={result.klineData} height={350} />
+            <CardContent className="p-0 sm:p-2">
+              <KLineChart data={result.klineData} height={400} />
             </CardContent>
           </Card>
         )}
 
         {/* BaZi Chart (八字命盘) */}
         {result.baziResult && (
-          <Card className="bg-white border-gray-200 shadow-lg rounded-lg">
-            <CardHeader>
+          <Card className="bg-white border-gray-200 shadow-lg rounded-xl">
+            <CardHeader className="border-b border-gray-100 pb-4">
               <CardTitle className="text-gray-900 text-xl font-bold flex items-center gap-2">
                 <span>钱包命理</span>
-                <span className="text-sm font-normal text-gray-500">基于首次交易时间排盘</span>
+                <span className="text-sm font-normal text-gray-500">玄学分析</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4">
+            <CardContent className="p-6">
               <BaZiChart data={result.baziResult} />
             </CardContent>
           </Card>
@@ -231,14 +273,14 @@ export default function AnalyzePage() {
 
         {/* Six Dimensions Radar Chart */}
         {result.personality.dimensions && (
-          <Card className="bg-white border-gray-200 shadow-lg rounded-lg">
-            <CardHeader>
+          <Card className="bg-white border-gray-200 shadow-lg rounded-xl">
+            <CardHeader className="border-b border-gray-100 pb-4">
               <CardTitle className="text-gray-900 text-xl font-bold flex items-center gap-2">
                 <span>六维画像</span>
-                <span className="text-sm font-normal text-gray-500">综合评分 · 雷达图</span>
+                <span className="text-sm font-normal text-gray-500">综合评分</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4">
+            <CardContent className="p-6">
               <RadarChart dimensions={result.personality.dimensions} height={320} />
             </CardContent>
           </Card>
@@ -246,26 +288,34 @@ export default function AnalyzePage() {
 
         {/* Top Holdings */}
         {result.portfolio.holdings.length > 0 && (
-          <Card className="bg-white border-gray-200 shadow-lg rounded-lg">
-            <CardHeader>
+          <Card className="bg-white border-gray-200 shadow-lg rounded-xl">
+            <CardHeader className="border-b border-gray-100 pb-4">
               <CardTitle className="text-gray-900 text-xl font-bold">主要持仓</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="divide-y divide-gray-100">
               {result.portfolio.holdings.slice(0, 5).map((holding, index) => (
-                <div key={index} className="flex justify-between items-center">
+                <div key={index} className="flex justify-between items-center py-3 first:pt-0 last:pb-0">
                   <div className="flex items-center gap-3">
-                    <span className="font-semibold text-gray-800 text-base">{holding.symbol}</span>
-                    {holding.isMeme && (
-                      <span className="text-xs bg-yellow-300/50 text-yellow-800 px-2 py-0.5 rounded-full font-medium">
-                        Meme
-                      </span>
-                    )}
+                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600">
+                      {holding.symbol[0]}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-gray-900">{holding.symbol}</span>
+                        {holding.isMeme && (
+                          <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded font-medium border border-yellow-200">
+                            MEME
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500">{holding.name}</div>
+                    </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-gray-800">
+                    <p className="font-bold text-gray-900">
                       ${holding.valueUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                     </p>
-                    <p className="text-gray-500 text-sm">
+                    <p className="text-gray-500 text-xs font-medium">
                       {holding.percentOfPortfolio.toFixed(1)}%
                     </p>
                   </div>
@@ -275,36 +325,17 @@ export default function AnalyzePage() {
           </Card>
         )}
 
-        {/* Roast Line */}
-        <Card className="bg-yellow-100 border-yellow-200 shadow-lg rounded-lg">
-          <CardContent className="p-6 text-center">
-            <p className="text-xl text-yellow-800 italic font-medium">
-              "{result.aiContent.roastLine}"
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-4 pt-4">
-          <Button
-            onClick={handleShare}
-            className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 text-lg transition-all duration-200 shadow-lg hover:shadow-xl"
-          >
-            {copied ? '已复制!' : '分享图片链接'}
-          </Button>
-          <Button
-            onClick={handleNewAnalysis}
-            variant="outline"
-            className="flex-1 border-gray-300 text-gray-800 hover:bg-gray-100 font-semibold py-3 text-lg"
-          >
-            再来一次
-          </Button>
-        </div>
-
-        {/* Disclaimer */}
-        <p className="text-gray-400 text-xs text-center pt-4">
-          仅供娱乐，不构成投资建议
-        </p>
+        {/* Footer Section */}
+        <AnalysisFooter
+          roastLine={result.aiContent.roastLine}
+          onShare={handleShare}
+          onDownload={handleDownload}
+          onNewAnalysis={handleNewAnalysis}
+          isCopied={copied}
+          isDownloading={downloading}
+          authorAddress={AUTHOR_EVM_ADDRESS}
+          authorXUrl={AUTHOR_X_URL}
+        />
       </div>
     </main>
   );

@@ -69,7 +69,7 @@ export default function Home() {
           <div className="text-sm text-gray-500 space-y-1">
             <p>🎭 你是什么币圈物种？鲸鱼、海豚还是虾米？</p>
             <p>📉 你的运势K线，下一个主升浪什么时候来？</p>
-            <p>🀄 链上八字命盘，2025流年运势抢先看</p>
+            <p>🀄 链上八字命盘，2026流年运势抢先看</p>
           </div>
         </div>
 

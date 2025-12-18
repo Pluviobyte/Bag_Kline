@@ -240,6 +240,41 @@ export async function getTokenPricesById(tokenIds: string[]): Promise<Record<str
 }
 
 /**
+ * Get OHLC (Candlestick) data for a token
+ * @param tokenId - CoinGecko token ID
+ * @param days - Duration in days (1, 7, 14, 30, 90, 180, 365, max)
+ * @returns Array of [timestamp, open, high, low, close]
+ */
+export async function getTokenOHLC(tokenId: string, days: number | 'max' = 30): Promise<number[][] | null> {
+  const cacheKey = `ohlc_${tokenId}_${days}`;
+  const cached = getCached<number[][]>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const response = await rateLimitedFetch(
+      `${COINGECKO_API}/coins/${tokenId}/ohlc?vs_currency=usd&days=${days}`
+    );
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        console.warn(`CoinGecko rate limited for OHLC ${tokenId}`);
+        return null;
+      }
+      throw new Error(`CoinGecko API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    // Data format: [[time, open, high, low, close], ...]
+    
+    setCache(cacheKey, data);
+    return data;
+  } catch (error) {
+    console.error(`Error fetching OHLC for ${tokenId}:`, error);
+    return null;
+  }
+}
+
+/**
  * Check if a token is a meme token
  * @param symbol - Token symbol
  * @returns True if token is categorized as meme

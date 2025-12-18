@@ -131,6 +131,7 @@ export interface KLineData {
     worstPeriod: string;
     nextPeak?: string;     // 预测下一个高点
     advice?: string;       // AI建议
+    assetName?: string;    // 显示的资产名称 (e.g. "BTC")
   };
 }
 

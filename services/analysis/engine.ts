@@ -96,7 +96,7 @@ export async function analyzeWallet(address: string): Promise<AnalysisResult> {
   });
 
   // Generate K-line data
-  let klineData = generateKLineData({
+  let klineData = await generateKLineData({
     holdings,
     firstTxDate: effectiveFirstTxDate.toISOString(),
     totalValueUsd,
