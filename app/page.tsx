@@ -56,25 +56,25 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
+    <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
         {/* Logo and Title */}
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-white mb-2">
+          <h1 className="text-5xl font-extrabold text-gray-900 mb-2 tracking-tight">
             我的袋子K线
           </h1>
-          <p className="text-xl text-gray-400">
+          <p className="text-xl text-gray-600 font-medium">
             BagKline
           </p>
         </div>
 
         {/* Main Card */}
-        <Card className="bg-gray-800/50 border-gray-700 backdrop-blur-sm">
+        <Card className="bg-white/70 border-gray-200 shadow-xl rounded-lg backdrop-blur-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-white text-xl">
+            <CardTitle className="text-gray-900 text-2xl font-bold">
               输入钱包地址
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-gray-500 text-base">
               基于链上数据分析你的持仓画像
             </CardDescription>
           </CardHeader>
@@ -88,21 +88,21 @@ export default function Home() {
               }}
               onKeyPress={handleKeyPress}
               disabled={loading}
-              className="bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-500 focus:border-purple-500 focus:ring-purple-500"
+              className="bg-gray-100 border-gray-300 text-gray-800 placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500 transition-colors duration-200"
             />
 
             {error && (
-              <p className="text-red-400 text-sm text-center">{error}</p>
+              <p className="text-red-600 text-sm text-center font-medium">{error}</p>
             )}
 
             <Button
               onClick={handleAnalyze}
               disabled={loading}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-2 transition-all duration-200"
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 text-lg transition-all duration-200 shadow-lg hover:shadow-xl"
             >
               {loading ? (
-                <span className="flex items-center gap-2">
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
                     <circle
                       className="opacity-25"
                       cx="12"
@@ -128,13 +128,13 @@ export default function Home() {
         </Card>
 
         {/* Supported Chains */}
-        <div className="flex justify-center gap-4 text-gray-500 text-sm">
+        <div className="flex justify-center gap-4 text-gray-500 text-sm font-medium">
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+            <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
             Solana
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+            <span className="w-2 h-2 bg-indigo-500 rounded-full"></span>
             Ethereum
           </span>
           <span className="flex items-center gap-1">
@@ -144,7 +144,7 @@ export default function Home() {
         </div>
 
         {/* Disclaimer */}
-        <p className="text-gray-600 text-xs text-center">
+        <p className="text-gray-400 text-xs text-center">
           仅供娱乐，不构成投资建议
         </p>
       </div>
