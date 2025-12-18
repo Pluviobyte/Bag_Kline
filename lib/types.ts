@@ -36,6 +36,7 @@ export interface AnalysisResult {
   };
 
   klineData?: KLineData;
+  baziResult?: BaZiResult;
 }
 
 export interface TokenHolding {
@@ -129,5 +130,75 @@ export interface KLinePrediction {
   }>;
   peakMonth: string;
   advice: string;
+}
+
+// ===== BaZi (八字) Types =====
+
+export type TianGan = '甲' | '乙' | '丙' | '丁' | '戊' | '己' | '庚' | '辛' | '壬' | '癸';
+export type DiZhi = '子' | '丑' | '寅' | '卯' | '辰' | '巳' | '午' | '未' | '申' | '酉' | '戌' | '亥';
+export type WuXing = '金' | '木' | '水' | '火' | '土';
+export type ShiShen = '比肩' | '劫财' | '食神' | '伤官' | '偏财' | '正财' | '七杀' | '正官' | '偏印' | '正印';
+
+// 柱（年月日时）
+export interface Pillar {
+  gan: TianGan;      // 天干
+  zhi: DiZhi;        // 地支
+  ganWuXing: WuXing; // 天干五行
+  zhiWuXing: WuXing; // 地支五行
+  label: string;     // 如 "甲辰"
+}
+
+// 四柱八字
+export interface BaZiChart {
+  year: Pillar;   // 年柱
+  month: Pillar;  // 月柱
+  day: Pillar;    // 日柱（日主）
+  hour: Pillar;   // 时柱
+  dayMaster: TianGan; // 日主（日干）
+}
+
+// 五行统计
+export interface WuXingStats {
+  金: number;
+  木: number;
+  水: number;
+  火: number;
+  土: number;
+  strongest: WuXing;   // 最强五行
+  weakest: WuXing;     // 最弱五行
+  xiYong: WuXing[];    // 喜用神
+}
+
+// 命格分析
+export interface MingGeAnalysis {
+  pattern: string;        // 命格名称，如"食神生财格"
+  description: string;    // 命格描述
+  wealthStar: {
+    zhengCai: number;     // 正财数量
+    pianCai: number;      // 偏财数量
+    status: '旺' | '平' | '弱';
+  };
+  tradingStyle: string;   // 投资风格建议
+  luckyElements: WuXing[]; // 幸运五行
+}
+
+// 流年运势（2025年）
+export interface LiuNianFortune {
+  year: number;           // 2025
+  ganZhi: string;         // "乙巳"
+  analysis: string;       // 流年分析
+  recommendation: string; // 投资建议
+  luckyMonths: string[];  // 幸运月份
+}
+
+// 完整八字命理结果
+export interface BaZiResult {
+  chart: BaZiChart;
+  wuxing: WuXingStats;
+  mingge: MingGeAnalysis;
+  liuNian: LiuNianFortune;
+  tokenWuXing: {
+    [symbol: string]: WuXing;
+  };
 }
 

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AnalysisResult } from '@/lib/types';
 import { KLineChart } from '@/components/kline-chart';
+import { BaZiChart } from '@/components/bazi-chart';
 
 // Dimension label mapping
 const dimensionLabels: Record<string, Record<string, string>> = {
@@ -208,6 +209,21 @@ export default function AnalyzePage() {
             </CardHeader>
             <CardContent className="p-2">
               <KLineChart data={result.klineData} height={350} />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* BaZi Chart (八字命盘) */}
+        {result.baziResult && (
+          <Card className="bg-gray-800/50 border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-white text-lg flex items-center gap-2">
+                <span>钱包命理</span>
+                <span className="text-xs font-normal text-gray-500">基于首次交易时间排盘</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              <BaZiChart data={result.baziResult} />
             </CardContent>
           </Card>
         )}

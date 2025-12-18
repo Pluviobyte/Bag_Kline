@@ -6,6 +6,7 @@ import { getTokenInfo, isMainstreamToken } from '../price/coingecko';
 import { generatePersonality } from './tags';
 import { generateAIContent, generateKLinePrediction } from '../ai/gemini';
 import { generateKLineData, addPredictionToKLine } from '../kline/generator';
+import { generateBaZiAnalysis } from '../bazi';
 import { AnalysisResult, TokenHolding, ChainType } from '@/lib/types';
 
 // Simple in-memory cache for results
@@ -100,6 +101,15 @@ export async function analyzeWallet(address: string): Promise<AnalysisResult> {
     // Continue without predictions
   }
 
+  // Generate BaZi (八字) analysis
+  let baziResult;
+  try {
+    baziResult = generateBaZiAnalysis(chainData.firstTxDate, holdings);
+  } catch (error) {
+    console.error('Failed to generate BaZi analysis:', error);
+    // Continue without BaZi analysis
+  }
+
   // Build result
   const result: AnalysisResult = {
     id: nanoid(10),
@@ -130,6 +140,7 @@ export async function analyzeWallet(address: string): Promise<AnalysisResult> {
     },
     aiContent,
     klineData,
+    baziResult,
   };
 
   // Cache the result
